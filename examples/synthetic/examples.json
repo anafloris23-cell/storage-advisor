@@ -1,0 +1,50 @@
+[
+  {
+    "id": "auction",
+    "title": "Auction",
+    "tag": "Ordonare",
+    "kind": "synthetic",
+    "description": "Address-uri intercalate cu uint256 — reordonarea grupează câmpurile mici.",
+    "file": "01-Auction.sol"
+  },
+  {
+    "id": "staking-pool",
+    "title": "Staking Pool",
+    "tag": "Ordonare",
+    "kind": "synthetic",
+    "description": "Câmpuri de timp (uint64) împrăștiate printre uint256.",
+    "file": "06-StakingPool.sol"
+  },
+  {
+    "id": "game",
+    "title": "Game",
+    "tag": "Ordonare",
+    "kind": "synthetic",
+    "description": "Multe câmpuri mici (uint8) care pot intra într-un singur slot.",
+    "file": "07-Game.sol"
+  },
+  {
+    "id": "voting",
+    "title": "Voting",
+    "tag": "Ordonare",
+    "kind": "synthetic",
+    "description": "Mix de bool, uint128 și address ordonat suboptim.",
+    "file": "08-Voting.sol"
+  },
+  {
+    "id": "struct-loan",
+    "title": "Struct Loan",
+    "tag": "Struct",
+    "kind": "synthetic",
+    "description": "Câmpuri de struct reordonabile: 3 → 2 sloturi pe instanță.",
+    "file": "11-StructLoan.sol"
+  },
+  {
+    "id": "struct-account",
+    "title": "Struct Account",
+    "tag": "Struct",
+    "kind": "synthetic",
+    "description": "uint64 intercalate între uint256 — caz extrem de fragmentare.",
+    "file": "12-StructAccount.sol"
+  }
+]
