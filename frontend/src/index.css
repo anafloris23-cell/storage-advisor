@@ -67,6 +67,22 @@ body {
 }
 .preview-muted { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 
+/* ---- View switch + Bulk report ---- */
+.view-switch { padding: 16px 32px 0; }
+.report-pane { padding: 20px 32px; }
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.report-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
 /* ---- Editor ---- */
 .editor-pane {
   background: var(--panel);

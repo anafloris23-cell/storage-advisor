@@ -52,7 +52,26 @@ function StatCard({ label, current, recommended, unit, better }) {
 export default function ContractResult({ contract }) {
   const { report, currentSlots } = contract
 
-  const slotsSaved = report.currentEstimatedSlots - report.recommendedEstimatedSlots
+  // structOptimizations expune în JSON doar currentSlots/optimalSlots/directInstances;
+  // valorile derivate (economie/instanță, total, are-îmbunătățire) le calculăm aici,
+  // pentru că pe backend sunt metode calculate, neserializate de Jackson.
+  const structOpts = (report.structOptimizations || []).map((s) => {
+    const savedPerInstance = s.currentSlots - s.optimalSlots
+    return {
+      ...s,
+      savedSlotsPerInstance: savedPerInstance,
+      totalSavedSlots: savedPerInstance * Math.max(s.directInstances || 0, 0),
+      hasImprovement: savedPerInstance > 0,
+    }
+  })
+
+  // Economia la nivel de variabile de stare (reordonarea declarațiilor)...
+  const stateSlotsSaved = report.currentEstimatedSlots - report.recommendedEstimatedSlots
+  // ...plus economia din interiorul structurilor (reordonarea câmpurilor × instanțe directe).
+  const structSlotsSaved = structOpts
+    .filter((s) => s.hasImprovement)
+    .reduce((sum, s) => sum + s.totalSavedSlots, 0)
+  const slotsSaved = stateSlotsSaved + structSlotsSaved
   const gasSaved = slotsSaved * GAS_PER_SLOT
 
   // Culori stabile pe variabilă, partajate între cele două diagrame.
@@ -65,7 +84,7 @@ export default function ContractResult({ contract }) {
   const before = currentSlots.map(fromCurrent)
   const after = report.recommendedSlots.map(fromRecommended)
 
-  const improvedStructs = (report.structOptimizations || []).filter((s) => s.hasImprovement)
+  const improvedStructs = structOpts.filter((s) => s.hasImprovement)
 
   return (
     <div className="contract">
@@ -83,6 +102,9 @@ export default function ContractResult({ contract }) {
         <div className="stat-card highlight">
           <div className="stat-label">Sloturi economisite</div>
           <div className="stat-big">{slotsSaved}</div>
+          {structSlotsSaved > 0 && (
+            <div className="stat-sub">{stateSlotsSaved} state + {structSlotsSaved} struct</div>
+          )}
         </div>
         <div className="stat-card highlight">
           <div className="stat-label">Economie gas estimată (deployment)</div>

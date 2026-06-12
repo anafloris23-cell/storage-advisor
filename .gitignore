@@ -1,0 +1,15 @@
+# Build output
+target/
+frontend/node_modules/
+frontend/dist/
+
+# Artefacte de preprocesare solc
+*.preprocessed.sol
+
+# Subsetul real al dataset-ului: cod terț descărcat (Etherscan/OpenZeppelin etc.),
+# voluminos și cu licențe proprii — nu se versionează; rezultatele analizei
+# sunt înghețate în reports/bulk-report.csv.
+dataset/real/
+
+# Configurare IDE
+.idea/

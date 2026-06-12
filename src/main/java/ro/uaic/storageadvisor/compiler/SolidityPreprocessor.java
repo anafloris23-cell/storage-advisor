@@ -76,6 +76,19 @@ public final class SolidityPreprocessor {
                     + "(?:\\s+(?:constant|immutable))*)\\s+(\\w+)\\s*([;=])"
     );
 
+    /** Declarație de array în state var: `Foo[] public x;` / `Foo[3] x;`. */
+    private static final Pattern ARRAY_VAR_DECL = Pattern.compile(
+            "(?m)^(\\s*)([A-Za-z_]\\w*)((?:\\s*\\[\\s*\\w*\\s*\\])+)"
+                    + "(\\s+(?:public|private|internal|external)(?:\\s+(?:constant|immutable))*)\\s+(\\w+)\\s*([;=])"
+    );
+
+    /**
+     * Tag NatSpec {@code @inheritdoc X}. După ce scoatem moștenirile și import-urile,
+     * contractul {@code X} referit nu mai există, iar solc dă {@code DocstringParsingError}.
+     */
+    private static final Pattern INHERITDOC_TAG =
+            Pattern.compile("@inheritdoc\\s+[A-Za-z_][\\w.]*");
+
     private static final Set<String> SOLIDITY_VALUE_TYPES = buildSolidityValueTypes();
 
     private static Set<String> buildSolidityValueTypes() {
@@ -124,6 +137,17 @@ public final class SolidityPreprocessor {
             source = pragmaMatcher.replaceFirst("$1^$2;");
             pragmaRelaxed = true;
         }
+
+        // 0.5 elimină tag-urile @inheritdoc (referă contracte din import-uri/moșteniri eliminate)
+        int inheritdocRemoved = 0;
+        Matcher inheritdocMatcher = INHERITDOC_TAG.matcher(source);
+        StringBuffer afterInheritdoc = new StringBuffer();
+        while (inheritdocMatcher.find()) {
+            inheritdocRemoved++;
+            inheritdocMatcher.appendReplacement(afterInheritdoc, "");
+        }
+        inheritdocMatcher.appendTail(afterInheritdoc);
+        source = afterInheritdoc.toString();
 
         // 1. imports
         StringBuilder afterImports = new StringBuilder();
@@ -207,14 +231,16 @@ public final class SolidityPreprocessor {
 
         if (importsCommented > 0 || inheritanceRemoved > 0 || usingsCommented > 0
                 || parentCallsCommented > 0 || bodiesStripped > 0
-                || !replacedTypes.isEmpty() || modifiersStripped > 0) {
+                || !replacedTypes.isEmpty() || modifiersStripped > 0 || inheritdocRemoved > 0) {
             warnings.add(String.format(
                     "Analiză izolată: %d import-uri, %d moșteniri, %d using-uri, %d parent calls, "
                             + "%d corpuri funcții golite, %d modifiers externe în signaturi eliminate, "
-                            + "%d tip-uri externe→address în state vars. "
+                            + "%d tag-uri @inheritdoc eliminate, "
+                            + "%d tip-uri externe→address în state vars/mapping/array. "
                             + "Layout-ul reflectă DOAR variabilele declarate în acest fișier.",
                     importsCommented, inheritanceRemoved, usingsCommented,
-                    parentCallsCommented, bodiesStripped, modifiersStripped, replacedTypes.size()
+                    parentCallsCommented, bodiesStripped, modifiersStripped,
+                    inheritdocRemoved, replacedTypes.size()
             ));
             if (!replacedTypes.isEmpty()) {
                 warnings.add("Tipuri externe înlocuite cu `address`: " + String.join(", ", replacedTypes));
@@ -396,6 +422,16 @@ public final class SolidityPreprocessor {
     private static String replaceTypesInBody(
             String body, Set<String> localTypes, Set<String> replacedTypes
     ) {
+        body = replaceSimpleStateVarTypes(body, localTypes, replacedTypes);
+        body = replaceMappingTypes(body, localTypes, replacedTypes);
+        body = replaceArrayVarTypes(body, localTypes, replacedTypes);
+        return body;
+    }
+
+    /** Declarații simple `Foo public x;` → `address public x;` pentru tipuri externe. */
+    private static String replaceSimpleStateVarTypes(
+            String body, Set<String> localTypes, Set<String> replacedTypes
+    ) {
         Matcher m = STATE_VAR_DECL.matcher(body);
         StringBuffer out = new StringBuffer();
         while (m.find()) {
@@ -405,11 +441,7 @@ public final class SolidityPreprocessor {
             String name = m.group(4);
             String terminator = m.group(5);
 
-            boolean isPrimitive = SOLIDITY_VALUE_TYPES.contains(type);
-            boolean isLocal = localTypes.contains(type);
-            boolean isKeyword = NON_TYPE_KEYWORDS.contains(type);
-
-            if (!isPrimitive && !isLocal && !isKeyword) {
+            if (isExternalType(type, localTypes)) {
                 replacedTypes.add(type);
                 m.appendReplacement(out, Matcher.quoteReplacement(
                         indent + "address" + visAndMods + " " + name + terminator
@@ -418,6 +450,209 @@ public final class SolidityPreprocessor {
         }
         m.appendTail(out);
         return out.toString();
+    }
+
+    /** Array-uri `Foo[] public x;` → `address[] public x;` pentru tipuri externe. */
+    private static String replaceArrayVarTypes(
+            String body, Set<String> localTypes, Set<String> replacedTypes
+    ) {
+        Matcher m = ARRAY_VAR_DECL.matcher(body);
+        StringBuffer out = new StringBuffer();
+        while (m.find()) {
+            String indent = m.group(1);
+            String type = m.group(2);
+            String dims = m.group(3);
+            String visAndMods = m.group(4);
+            String name = m.group(5);
+            String terminator = m.group(6);
+
+            if (isExternalType(type, localTypes)) {
+                replacedTypes.add(type);
+                m.appendReplacement(out, Matcher.quoteReplacement(
+                        indent + "address" + dims + visAndMods + " " + name + terminator
+                ));
+            }
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
+
+    /**
+     * Înlocuiește tipurile externe din interiorul declarațiilor `mapping(...)` cu `address`.
+     * Sigur pentru analiza de storage: un mapping ocupă mereu exact 1 slot, indiferent de
+     * tipul cheii/valorii. Tratează și mapping-urile imbricate (`mapping(A => mapping(B => C))`).
+     */
+    private static String replaceMappingTypes(
+            String body, Set<String> localTypes, Set<String> replacedTypes
+    ) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        int n = body.length();
+        while (i < n) {
+            char c = body.charAt(i);
+            // Sari peste comentarii/string-uri fără a le atinge.
+            if (c == '/' && i + 1 < n && body.charAt(i + 1) == '/') {
+                int j = i;
+                while (j < n && body.charAt(j) != '\n') j++;
+                out.append(body, i, j);
+                i = j;
+                continue;
+            }
+            if (c == '/' && i + 1 < n && body.charAt(i + 1) == '*') {
+                int j = i + 2;
+                while (j + 1 < n && !(body.charAt(j) == '*' && body.charAt(j + 1) == '/')) j++;
+                j = Math.min(j + 2, n);
+                out.append(body, i, j);
+                i = j;
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                int j = Math.min(skipString(body, i), n);
+                out.append(body, i, j);
+                i = j;
+                continue;
+            }
+            if (matchesWordAt(body, i, "mapping")) {
+                int p = i + "mapping".length();
+                int q = p;
+                while (q < n && Character.isWhitespace(body.charAt(q))) q++;
+                if (q < n && body.charAt(q) == '(') {
+                    int close = findMatchingParen(body, q);
+                    if (close > q) {
+                        out.append(body, i, q + 1); // "mapping" + spații + "("
+                        String inner = body.substring(q + 1, close);
+                        out.append(replaceIdentifiersWithAddress(inner, localTypes, replacedTypes));
+                        out.append(')');
+                        i = close + 1;
+                        continue;
+                    }
+                }
+            }
+            out.append(c);
+            i++;
+        }
+        return out.toString();
+    }
+
+    /**
+     * Înlocuiește tipurile externe din interiorul unui mapping cu `address`, înlocuind DOAR
+     * tipurile, nu și numele opționale ale cheii/valorii (sintaxa Solidity ≥0.8.18:
+     * {@code mapping(address account => uint256 balance)}). Tratează nume calificate
+     * ({@code IFace.Type}) și mapping-uri imbricate.
+     *
+     * Mașină de stări: într-un mapping, primul identificator (sau cel de după {@code =>} / {@code (})
+     * e TIPUL; un identificator imediat următor e NUMELE (se păstrează).
+     */
+    private static String replaceIdentifiersWithAddress(
+            String text, Set<String> localTypes, Set<String> replacedTypes
+    ) {
+        StringBuilder out = new StringBuilder();
+        int i = 0;
+        int n = text.length();
+        boolean expectingType = true; // un mapping începe mereu cu tipul cheii
+        while (i < n) {
+            char c = text.charAt(i);
+            if (c == '=' && i + 1 < n && text.charAt(i + 1) == '>') {
+                out.append("=>");          // separator cheie→valoare: urmează un tip
+                i += 2;
+                expectingType = true;
+                continue;
+            }
+            if (c == '(') {                 // mapping imbricat: urmează tipul cheii
+                out.append('(');
+                i++;
+                expectingType = true;
+                continue;
+            }
+            if (c == ')') {                 // s-a încheiat un tip-valoare (mapping imbricat)
+                out.append(')');
+                i++;
+                expectingType = false;
+                continue;
+            }
+            if (Character.isJavaIdentifierStart(c)) {
+                int start = i;
+                while (i < n && Character.isJavaIdentifierPart(text.charAt(i))) i++;
+                // Consumă și partea calificată: `.Ident.Ident...`
+                int j = i;
+                while (j < n) {
+                    int k = j;
+                    while (k < n && Character.isWhitespace(text.charAt(k))) k++;
+                    if (k < n && text.charAt(k) == '.') {
+                        k++;
+                        while (k < n && Character.isWhitespace(text.charAt(k))) k++;
+                        if (k < n && Character.isJavaIdentifierStart(text.charAt(k))) {
+                            k++;
+                            while (k < n && Character.isJavaIdentifierPart(text.charAt(k))) k++;
+                            j = k;
+                            continue;
+                        }
+                    }
+                    break;
+                }
+                String base = text.substring(start, i);
+                String full = text.substring(start, j);
+                if (expectingType) {
+                    if (isExternalType(base, localTypes)) {
+                        out.append("address");
+                        replacedTypes.add(base);
+                    } else {
+                        out.append(full);
+                    }
+                    expectingType = false;  // un identificator următor ar fi NUMELE
+                } else {
+                    out.append(full);        // numele opțional al cheii/valorii — se păstrează
+                }
+                i = j;
+            } else {
+                out.append(c);
+                i++;
+            }
+        }
+        return out.toString();
+    }
+
+    private static boolean isExternalType(String type, Set<String> localTypes) {
+        return !SOLIDITY_VALUE_TYPES.contains(type)
+                && !localTypes.contains(type)
+                && !NON_TYPE_KEYWORDS.contains(type);
+    }
+
+    private static boolean matchesWordAt(String s, int i, String word) {
+        if (!s.startsWith(word, i)) return false;
+        if (i > 0 && Character.isJavaIdentifierPart(s.charAt(i - 1))) return false;
+        int after = i + word.length();
+        if (after < s.length() && Character.isJavaIdentifierPart(s.charAt(after))) return false;
+        return true;
+    }
+
+    private static int findMatchingParen(String s, int openIdx) {
+        int depth = 1;
+        int i = openIdx + 1;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == '/' && i + 1 < s.length() && s.charAt(i + 1) == '/') {
+                while (i < s.length() && s.charAt(i) != '\n') i++;
+                continue;
+            }
+            if (c == '/' && i + 1 < s.length() && s.charAt(i + 1) == '*') {
+                i += 2;
+                while (i + 1 < s.length() && !(s.charAt(i) == '*' && s.charAt(i + 1) == '/')) i++;
+                i += 2;
+                continue;
+            }
+            if (c == '"' || c == '\'') {
+                i = skipString(s, i);
+                continue;
+            }
+            if (c == '(') depth++;
+            else if (c == ')') {
+                depth--;
+                if (depth == 0) return i;
+            }
+            i++;
+        }
+        return -1;
     }
 
     // ──────────────────────────────────────────────────────────────────

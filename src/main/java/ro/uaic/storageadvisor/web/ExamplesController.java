@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Expune contractele exemplu pentru interfață prin {@code GET /api/examples}.
+ * Expune contractele exemplu pentru interfață prin {@code GET /api/dataset}.
  *
  */
 @RestController

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Button, Alert } from 'antd'
-import { analyzeSource, fetchExamples } from './api'
+import { Button, Alert, Segmented } from 'antd'
+import { analyzeSource, fetchExamples, fetchDatasetSource } from './api'
 import ContractResult from './components/ContractResult'
 import ExamplesPanel from './components/ExamplesPanel'
+import BulkReport from './components/BulkReport'
 
 const GAS_PER_SLOT = 20000
 
@@ -14,7 +15,9 @@ function summarize(data) {
     const r = c.report
     slotsSaved += r.currentEstimatedSlots - r.recommendedEstimatedSlots
     for (const s of r.structOptimizations || []) {
-      if (s.hasImprovement) slotsSaved += s.totalSavedSlots
+      // valori derivate calculate aici (vezi ContractResult.jsx): backend-ul nu le serializează
+      const savedPerInstance = s.currentSlots - s.optimalSlots
+      if (savedPerInstance > 0) slotsSaved += savedPerInstance * Math.max(s.directInstances || 0, 0)
     }
   }
   return { slotsSaved, gasSaved: slotsSaved * GAS_PER_SLOT }
@@ -29,6 +32,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [result, setResult] = useState(null)
   const [previews, setPreviews] = useState({}) // id -> { status, slotsSaved, gasSaved }
+  const [view, setView] = useState('analyzer') // 'analyzer' | 'report'
 
   // La încărcare: aducem exemplele din backend, pre-completăm editorul cu primul
   // și calculăm preview-ul live (economia estimată) pentru fiecare card. Eșecul
@@ -85,6 +89,25 @@ export default function App() {
     setActiveId(null) // editare manuală => niciun exemplu nu mai e „activ”
   }
 
+  // Click pe un rând din raport: aduce sursa contractului, comută pe Analizor și o analizează.
+  async function openContract(file) {
+    setView('analyzer')
+    setActiveId(null)
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const src = await fetchDatasetSource(file)
+      setSource(src)
+      const data = await analyzeSource(src, 'Contract.sol')
+      setResult(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -92,6 +115,21 @@ export default function App() {
         <p>Analiză statică a layout-ului de storage pentru contracte Solidity</p>
       </header>
 
+      <div className="view-switch">
+        <Segmented
+          value={view}
+          onChange={setView}
+          size="large"
+          options={[
+            { label: 'Analizor', value: 'analyzer' },
+            { label: 'Raport dataset', value: 'report' },
+          ]}
+        />
+      </div>
+
+      {view === 'report' ? (
+        <BulkReport onOpenContract={openContract} />
+      ) : (
       <main className="layout">
         <ExamplesPanel
           samples={examples}
@@ -158,6 +196,7 @@ export default function App() {
           )}
         </section>
       </main>
+      )}
     </div>
   )
 }
