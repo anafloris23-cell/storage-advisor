@@ -5,7 +5,7 @@
 export async function fetchExamples() {
   const res = await fetch('/api/examples')
   if (!res.ok) {
-    throw new Error(`Nu am putut încărca exemplele (HTTP ${res.status})`)
+    throw new Error(`Could not load the examples (HTTP ${res.status})`)
   }
   return res.json()
 }
@@ -14,7 +14,7 @@ export async function fetchExamples() {
 export async function fetchBulkReport() {
   const res = await fetch('/api/bulk-report')
   if (!res.ok) {
-    throw new Error(`Nu am putut încărca raportul (HTTP ${res.status})`)
+    throw new Error(`Could not load the report (HTTP ${res.status})`)
   }
   return res.json()
 }
@@ -29,10 +29,30 @@ export async function fetchDatasetSource(path) {
     // răspuns fără JSON
   }
   if (!res.ok) {
-    const message = payload && payload.error ? payload.error : `Eroare HTTP ${res.status}`
+    const message = payload && payload.error ? payload.error : `HTTP error ${res.status}`
     throw new Error(message)
   }
   return payload.source
+}
+
+// Analizează un contract verificat de pe Etherscan, după adresă sau link (POST /api/analyze-address).
+export async function analyzeAddress(url) {
+  const res = await fetch('/api/analyze-address', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  let payload = null
+  try {
+    payload = await res.json()
+  } catch {
+    // no JSON body
+  }
+  if (!res.ok) {
+    const message = payload && payload.error ? payload.error : `HTTP error ${res.status}`
+    throw new Error(message)
+  }
+  return payload
 }
 
 export async function analyzeSource(source, filename) {
@@ -50,7 +70,7 @@ export async function analyzeSource(source, filename) {
   }
 
   if (!res.ok) {
-    const message = payload && payload.error ? payload.error : `Eroare HTTP ${res.status}`
+    const message = payload && payload.error ? payload.error : `HTTP error ${res.status}`
     throw new Error(message)
   }
   return payload

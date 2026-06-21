@@ -7,8 +7,8 @@ const GAS_PER_SLOT = 20000
 
 const KIND_TAG = {
   real: { label: 'real', color: 'gold' },
-  synthetic: { label: 'sintetic', color: 'blue' },
-  other: { label: 'alt', color: 'default' },
+  synthetic: { label: 'synthetic', color: 'blue' },
+  other: { label: 'other', color: 'default' },
 }
 
 const columns = (onOpen) => [
@@ -16,15 +16,15 @@ const columns = (onOpen) => [
     title: 'Contract',
     dataIndex: 'contract',
     key: 'contract',
-    render: (v) => <Text strong>{v || '(anonim)'}</Text>,
+    render: (v) => <Text strong>{v || '(anonymous)'}</Text>,
   },
   {
-    title: 'Tip',
+    title: 'Type',
     dataIndex: 'kind',
     key: 'kind',
     filters: [
       { text: 'real', value: 'real' },
-      { text: 'sintetic', value: 'synthetic' },
+      { text: 'synthetic', value: 'synthetic' },
     ],
     onFilter: (val, r) => r.kind === val,
     render: (k) => {
@@ -33,13 +33,13 @@ const columns = (onOpen) => [
     },
   },
   {
-    title: 'Strategie',
+    title: 'Strategy',
     dataIndex: 'strategy',
     key: 'strategy',
     render: (s) => <Tag>{s && s.startsWith('FFD') ? 'FFD' : 'DP'}</Tag>,
   },
   {
-    title: '−Sloturi',
+    title: '−Slots',
     dataIndex: 'savedSlots',
     key: 'savedSlots',
     align: 'right',
@@ -76,10 +76,10 @@ export default function BulkReport({ onOpenContract }) {
   }, [])
 
   if (loading) {
-    return <div className="report-pane"><Spin /> <Text type="secondary">se încarcă raportul…</Text></div>
+    return <div className="report-pane"><Spin /> <Text type="secondary">loading report…</Text></div>
   }
   if (error) {
-    return <div className="report-pane"><Alert type="error" showIcon message="Eroare la încărcarea raportului" description={error} /></div>
+    return <div className="report-pane"><Alert type="error" showIcon message="Error loading the report" description={error} /></div>
   }
   if (!data || !data.generated) {
     return (
@@ -87,8 +87,8 @@ export default function BulkReport({ onOpenContract }) {
         <Alert
           type="info"
           showIcon
-          message="Raportul nu a fost generat încă"
-          description="Rulează BulkAnalyzer pe dataset ca să generezi reports/bulk-report.csv, apoi reîncarcă pagina."
+          message="The report has not been generated yet"
+          description="Run BulkAnalyzer on the dataset to generate reports/bulk-report.csv, then reload the page."
         />
       </div>
     )
@@ -99,40 +99,40 @@ export default function BulkReport({ onOpenContract }) {
 
   return (
     <div className="report-pane">
-      <Title level={3} style={{ marginTop: 0 }}>Raport dataset</Title>
-      <Paragraph type="secondary" style={{ maxWidth: 900 }}>
-        Am analizat <b>{data.contractsTotal.toLocaleString('ro-RO')}</b> contracte
-        ({data.contractsOk.toLocaleString('ro-RO')} cu succes, {data.contractsError.toLocaleString('ro-RO')} cu erori).
-        <b> {data.winnersCount.toLocaleString('ro-RO')}</b> contracte (<b>{pct}%</b>) aveau layout suboptim,
-        însumând <b>{data.totalSavedSlots.toLocaleString('ro-RO')} sloturi</b>
-        {' '}(~{gas.toLocaleString('ro-RO')} gas) ce pot fi economisite la deploy.
+      <Title level={3} style={{ marginTop: 0 }}>Dataset report</Title>
+      <Paragraph type="secondary" style={{ maxWidth: 1200 }}>
+        The analysis processed <b>{data.contractsTotal.toLocaleString('en-US')}</b> contracts
+        ({data.contractsOk.toLocaleString('en-US')} successfully, {data.contractsError.toLocaleString('en-US')} with errors).
+        <b> {data.winnersCount.toLocaleString('en-US')}</b> contracts ({pct}%) had a suboptimal layout,
+        totaling <b>{data.totalSavedSlots.toLocaleString('en-US')} slots</b>
+        {' '}(~{gas.toLocaleString('en-US')} gas) that can be saved on deployment.
       </Paragraph>
 
       <div className="report-stats">
-        <Card size="small"><Statistic title="Contracte analizate" value={data.contractsOk} /></Card>
-        <Card size="small"><Statistic title="Contracte cu câștig" value={data.winnersCount} suffix={`(${pct}%)`} /></Card>
-        <Card size="small"><Statistic title="Sloturi economisite" value={data.totalSavedSlots} /></Card>
-        <Card size="small"><Statistic title="Bytes recuperați" value={data.totalSavedBytes} /></Card>
-        <Card size="small"><Statistic title="Optim absolut (DP)" value={data.dpCount} suffix={`/ ${data.dpCount + data.ffdCount}`} /></Card>
-        <Card size="small"><Statistic title="Erori (necompilate)" value={data.contractsError} /></Card>
+        <Card size="small"><Statistic title="Contracts analyzed" value={data.contractsOk} /></Card>
+        <Card size="small"><Statistic title="Contracts with savings" value={data.winnersCount} /></Card>
+        <Card size="small"><Statistic title="Saved slots" value={data.totalSavedSlots} /></Card>
+        <Card size="small"><Statistic title="Recovered bytes" value={data.totalSavedBytes} /></Card>
+        <Card size="small"><Statistic title="Exact optimum (DP)" value={data.dpCount} suffix={`/ ${data.dpCount + data.ffdCount}`} /></Card>
+        <Card size="small"><Statistic title="Errors (not compiled)" value={data.contractsError} /></Card>
       </div>
 
       <div className="report-split">
         <Card size="small">
-          <Statistic title="Subset real — sloturi" value={data.realSavedSlots} />
-          <Text type="secondary" style={{ fontSize: 12 }}>{data.realCount.toLocaleString('ro-RO')} contracte</Text>
+          <Statistic title="Real subset — slots" value={data.realSavedSlots} />
+          <Text type="secondary" style={{ fontSize: 12 }}>{data.realCount.toLocaleString('en-US')} contracts</Text>
         </Card>
         <Card size="small">
-          <Statistic title="Subset sintetic — sloturi" value={data.syntheticSavedSlots} />
-          <Text type="secondary" style={{ fontSize: 12 }}>{data.syntheticCount} contracte</Text>
+          <Statistic title="Synthetic subset — slots" value={data.syntheticSavedSlots} />
+          <Text type="secondary" style={{ fontSize: 12 }}>{data.syntheticCount} contracts</Text>
         </Card>
         <Card size="small">
-          <Statistic title="Optimizări struct" value={data.structSavedSlots} suffix="sloturi" />
-          <Text type="secondary" style={{ fontSize: 12 }}>{data.structsImproved} structuri</Text>
+          <Statistic title="Struct optimizations" value={data.structSavedSlots} suffix="slots" />
+          <Text type="secondary" style={{ fontSize: 12 }}>{data.structsImproved} structures</Text>
         </Card>
       </div>
 
-      <Title level={5}>Top contracte după câștig</Title>
+      <Title level={5}>Top contracts by savings</Title>
       <Table
         size="small"
         rowKey={(r, i) => `${r.file}#${i}`}
@@ -142,7 +142,7 @@ export default function BulkReport({ onOpenContract }) {
         onRow={(r) => ({ onClick: () => onOpenContract(r.file), style: { cursor: 'pointer' } })}
       />
       <Text type="secondary" style={{ fontSize: 12 }}>
-        Click pe un rând → deschide contractul în Analizor cu diagrama before/after.
+        Click a row to open the contract in the Analyzer with the before/after diagram.
       </Text>
     </div>
   )

@@ -233,17 +233,17 @@ public final class SolidityPreprocessor {
                 || parentCallsCommented > 0 || bodiesStripped > 0
                 || !replacedTypes.isEmpty() || modifiersStripped > 0 || inheritdocRemoved > 0) {
             warnings.add(String.format(
-                    "Analiză izolată: %d import-uri, %d moșteniri, %d using-uri, %d parent calls, "
-                            + "%d corpuri funcții golite, %d modifiers externe în signaturi eliminate, "
-                            + "%d tag-uri @inheritdoc eliminate, "
-                            + "%d tip-uri externe→address în state vars/mapping/array. "
-                            + "Layout-ul reflectă DOAR variabilele declarate în acest fișier.",
+                    "Isolated analysis: %d imports, %d inheritance lists, %d using directives, %d parent calls, "
+                            + "%d function bodies stripped, %d external modifiers removed from signatures, "
+                            + "%d @inheritdoc tags removed, "
+                            + "%d external types replaced with address in state vars/mapping/array. "
+                            + "The layout reflects ONLY the variables declared in this file.",
                     importsCommented, inheritanceRemoved, usingsCommented,
                     parentCallsCommented, bodiesStripped, modifiersStripped,
                     inheritdocRemoved, replacedTypes.size()
             ));
             if (!replacedTypes.isEmpty()) {
-                warnings.add("Tipuri externe înlocuite cu `address`: " + String.join(", ", replacedTypes));
+                warnings.add("External types replaced with `address`: " + String.join(", ", replacedTypes));
             }
         }
 

@@ -95,37 +95,37 @@ export default function ContractResult({ contract }) {
       </div>
 
       <div className="stats">
-        <StatCard label="Sloturi" current={report.currentEstimatedSlots}
+        <StatCard label="Slots" current={report.currentEstimatedSlots}
                   recommended={report.recommendedEstimatedSlots} unit="" better />
-        <StatCard label="Bytes irosiți" current={report.currentWastedBytes}
+        <StatCard label="Wasted bytes" current={report.currentWastedBytes}
                   recommended={report.recommendedWastedBytes} unit="B" better />
         <div className="stat-card highlight">
-          <div className="stat-label">Sloturi economisite</div>
+          <div className="stat-label">Saved slots</div>
           <div className="stat-big">{slotsSaved}</div>
           {structSlotsSaved > 0 && (
             <div className="stat-sub">{stateSlotsSaved} state + {structSlotsSaved} struct</div>
           )}
         </div>
         <div className="stat-card highlight">
-          <div className="stat-label">Economie gas estimată (deployment)</div>
-          <div className="stat-big">~{gasSaved.toLocaleString('ro-RO')}</div>
-          <div className="stat-sub">{slotsSaved} × {GAS_PER_SLOT.toLocaleString('ro-RO')} gas/slot</div>
+          <div className="stat-label">Estimated gas savings (deployment)</div>
+          <div className="stat-big">~{gasSaved.toLocaleString('en-US')}</div>
+          <div className="stat-sub">{slotsSaved} × {GAS_PER_SLOT.toLocaleString('en-US')} gas/slot</div>
         </div>
       </div>
 
       <div className="diagrams">
-        <SlotDiagram title="Layout curent (declarat)" slots={before} colorMap={colorMap} />
-        <SlotDiagram title="Layout recomandat (optimizat)" slots={after} colorMap={colorMap} />
+        <SlotDiagram title="Current layout (declared)" slots={before} colorMap={colorMap} />
+        <SlotDiagram title="Recommended layout (optimized)" slots={after} colorMap={colorMap} />
       </div>
 
       <div className="panels">
         <section className="panel">
-          <h3>Probleme detectate ({report.issues.length})</h3>
+          <h3>Detected issues ({report.issues.length})</h3>
           <IssueList issues={report.issues} />
         </section>
 
         <section className="panel">
-          <h3>Ordine recomandată în Solidity</h3>
+          <h3>Recommended order in Solidity</h3>
           <pre className="code">
             {report.recommendedOrder.map((v) => `${v.typeLabel} ${v.label};`).join('\n')}
           </pre>
@@ -134,13 +134,13 @@ export default function ContractResult({ contract }) {
 
       {improvedStructs.length > 0 && (
         <section className="panel">
-          <h3>Optimizări struct</h3>
+          <h3>Struct optimizations</h3>
           {improvedStructs.map((s, i) => (
             <div key={i} className="struct-opt">
               <div className="struct-head">
-                <strong>{s.label}</strong>: {s.currentSlots} → {s.optimalSlots} sloturi/instanță
+                <strong>{s.label}</strong>: {s.currentSlots} → {s.optimalSlots} slots/instance
                 <span className="struct-saving">
-                  −{s.savedSlotsPerInstance}/instanță · {s.directInstances} instanțe → −{s.totalSavedSlots} sloturi
+                  −{s.savedSlotsPerInstance}/instance · {s.directInstances} instances → −{s.totalSavedSlots} slots
                 </span>
               </div>
               <pre className="code">

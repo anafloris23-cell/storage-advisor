@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Button, Alert, Segmented } from 'antd'
-import { analyzeSource, fetchExamples, fetchDatasetSource } from './api'
+import { Button, Alert, Segmented, Input } from 'antd'
+import { analyzeSource, fetchExamples, fetchDatasetSource, analyzeAddress } from './api'
 import ContractResult from './components/ContractResult'
 import ExamplesPanel from './components/ExamplesPanel'
 import BulkReport from './components/BulkReport'
@@ -33,6 +33,7 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [previews, setPreviews] = useState({}) // id -> { status, slotsSaved, gasSaved }
   const [view, setView] = useState('analyzer') // 'analyzer' | 'report'
+  const [address, setAddress] = useState('')
 
   // La încărcare: aducem exemplele din backend, pre-completăm editorul cu primul
   // și calculăm preview-ul live (economia estimată) pentru fiecare card. Eșecul
@@ -89,6 +90,24 @@ export default function App() {
     setActiveId(null) // editare manuală => niciun exemplu nu mai e „activ”
   }
 
+  // Analizează un contract deployat, adus de pe Etherscan după adresă/link.
+  async function runAnalyzeAddress() {
+    if (!address.trim()) return
+    setActiveId(null)
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const data = await analyzeAddress(address)
+      if (data.source) setSource(data.source) // afișează codul adus de pe Etherscan în editor
+      setResult(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Click pe un rând din raport: aduce sursa contractului, comută pe Analizor și o analizează.
   async function openContract(file) {
     setView('analyzer')
@@ -112,7 +131,7 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1>StorageAdvisor</h1>
-        <p>Analiză statică a layout-ului de storage pentru contracte Solidity</p>
+        <p>Static Analysis of the Storage Layout for Solidity Contracts</p>
       </header>
 
       <div className="view-switch">
@@ -121,8 +140,8 @@ export default function App() {
           onChange={setView}
           size="large"
           options={[
-            { label: 'Analizor', value: 'analyzer' },
-            { label: 'Raport dataset', value: 'report' },
+            { label: 'Analyzer', value: 'analyzer' },
+            { label: 'Dataset report', value: 'report' },
           ]}
         />
       </div>
@@ -140,12 +159,21 @@ export default function App() {
         />
 
         <section className="editor-pane">
+          <Input.Search
+            placeholder="Etherscan address or link (0x... )"
+            enterButton="Fetch & analyze"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            onSearch={runAnalyzeAddress}
+            loading={loading}
+            style={{ marginBottom: 12 }}
+          />
           <textarea
             className="editor"
             value={source}
             onChange={handleEdit}
             spellCheck={false}
-            placeholder="Lipește aici codul Solidity..."
+            placeholder="Paste your Solidity code here..."
           />
           <Button
             type="primary"
@@ -156,18 +184,18 @@ export default function App() {
             onClick={() => runAnalyze(source)}
             style={{ marginTop: 12 }}
           >
-            {loading ? 'Se analizează…' : 'Analizează'}
+            {loading ? 'Analyzing…' : 'Analyze'}
           </Button>
         </section>
 
         <section className="results-pane">
           {error && (
-            <Alert type="error" showIcon message="Eroare la analiză" description={error} />
+            <Alert type="error" showIcon message="Analysis error" description={error} />
           )}
 
           {!error && !result && !loading && (
             <div className="placeholder">
-              <p>Alege un exemplu sau lipește un contract, apoi apasă <strong>Analizează</strong>.</p>
+              <p>Choose an example or paste a contract, then click <strong>Analyze</strong>.</p>
             </div>
           )}
 
@@ -178,7 +206,7 @@ export default function App() {
                   type="warning"
                   showIcon
                   style={{ marginBottom: 16 }}
-                  message="Preprocesare aplicată"
+                  message="Preprocessing applied"
                   description={
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
                       {result.preprocessing.warnings.map((w, i) => <li key={i}>{w}</li>)}
@@ -187,7 +215,7 @@ export default function App() {
                 />
               )}
               {result.contracts.length === 0 && (
-                <div className="placeholder"><p>Niciun contract cu storage găsit.</p></div>
+                <div className="placeholder"><p>No contract with storage was found.</p></div>
               )}
               {result.contracts.map((c, i) => (
                 <ContractResult key={i} contract={c} />

@@ -34,8 +34,8 @@ public class InefficiencyDetector {
                         "PARTIAL_SLOT_WASTE",
                         used <= 16 ? "MEDIUM" : "LOW",
                         variables,
-                        "Slotul " + slotEntry.getKey() + " folosește doar " + used + " din 32 bytes.",
-                        "Verifică dacă variabilele mici pot fi grupate mai eficient."
+                        "Slot " + slotEntry.getKey() + " uses only " + used + " of 32 bytes.",
+                        "Check whether the small variables can be packed more efficiently."
                 ));
             }
         }
@@ -58,8 +58,8 @@ public class InefficiencyDetector {
                         "SUBOPTIMAL_ORDER",
                         "MEDIUM",
                         curr.label(),
-                        "Tipul mare '" + curr.label() + "' separă două variabile mici care ar putea fi grupate mai bine.",
-                        "Evaluează reordonarea variabilelor " + prev.label() + ", " + next.label() + " înainte de " + curr.label() + "."
+                        "The large type '" + curr.label() + "' separates two small variables that could be grouped more efficiently.",
+                        "Consider reordering variables " + prev.label() + ", " + next.label() + " before " + curr.label() + "."
                 ));
             }
         }

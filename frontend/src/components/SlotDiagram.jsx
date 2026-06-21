@@ -37,9 +37,9 @@ export default function SlotDiagram({ title, slots, colorMap }) {
                   <div
                     className="seg seg-wasted"
                     style={{ width: `${(slot.wastedBytes / capacity) * 100}%`, background: WASTED_COLOR }}
-                    title={`${slot.wastedBytes} bytes irosiți`}
+                    title={`${slot.wastedBytes} wasted bytes`}
                   >
-                    <span className="seg-label seg-label-wasted">{slot.wastedBytes}B liberi</span>
+                    <span className="seg-label seg-label-wasted">{slot.wastedBytes}B free</span>
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 package ro.uaic.storageadvisor.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,7 @@ import ro.uaic.storageadvisor.compiler.SolidityPreprocessor;
 import ro.uaic.storageadvisor.model.AnalysisReport;
 import ro.uaic.storageadvisor.model.ContractLayout;
 import ro.uaic.storageadvisor.parser.StorageLayoutParser;
+import ro.uaic.storageadvisor.web.dto.AnalyzeAddressRequest;
 import ro.uaic.storageadvisor.web.dto.AnalyzeRequest;
 import ro.uaic.storageadvisor.web.dto.AnalyzeResponse;
 import ro.uaic.storageadvisor.web.dto.ContractResult;
@@ -41,19 +43,47 @@ public class AnalysisController {
 
     private final StorageLayoutParser parser = new StorageLayoutParser();
     private final AnalysisService analysisService = new AnalysisService();
+    private final EtherscanClient etherscan;
+
+    public AnalysisController(@Value("${etherscan.api-key:}") String etherscanApiKey) {
+        this.etherscan = new EtherscanClient(etherscanApiKey);
+    }
 
     @PostMapping("/analyze")
     public ResponseEntity<?> analyze(@RequestBody AnalyzeRequest request) {
         if (request == null || request.source() == null || request.source().isBlank()) {
             return ResponseEntity.badRequest()
-                    .body(new ErrorResponse("Sursa Solidity este goală."));
+                    .body(new ErrorResponse("The Solidity source is empty."));
         }
+        return runAnalysis(request.source(), safeFilename(request.filename()));
+    }
 
+    @PostMapping("/analyze-address")
+    public ResponseEntity<?> analyzeAddress(@RequestBody AnalyzeAddressRequest request) {
+        String address = request == null ? null : EtherscanClient.extractAddress(request.url());
+        if (address == null) {
+            return ResponseEntity.badRequest()
+                    .body(new ErrorResponse("No valid contract address (0x...) was found in the input."));
+        }
+        try {
+            EtherscanClient.FetchedContract fetched = etherscan.fetchSource(address);
+            String filename = safeFilename(fetched.contractName());
+            return runAnalysis(fetched.source(), filename);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Could not fetch the contract from Etherscan: " + e.getMessage()));
+        }
+    }
+
+    /** Pipeline-ul comun: scrie sursa într-un fișier temporar, compilează și analizează. */
+    private ResponseEntity<?> runAnalysis(String source, String filename) {
         Path workDir = null;
         try {
             workDir = Files.createTempDirectory("storageadvisor-");
-            Path solFile = workDir.resolve(safeFilename(request.filename()));
-            Files.writeString(solFile, request.source(), StandardCharsets.UTF_8);
+            Path solFile = workDir.resolve(filename);
+            Files.writeString(solFile, source, StandardCharsets.UTF_8);
 
             SolcRunner runner = new SolcRunner();
             JsonNode compilerOutput = runner.compile(solFile);
@@ -72,13 +102,13 @@ public class AnalysisController {
                 contracts.add(new ContractResult(report, CurrentLayoutBuilder.build(layout)));
             }
 
-            return ResponseEntity.ok(new AnalyzeResponse(preInfo, contracts));
+            return ResponseEntity.ok(new AnalyzeResponse(preInfo, contracts, source));
 
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("Eroare neașteptată la analiză: " + e.getMessage()));
+                    .body(new ErrorResponse("Unexpected error during analysis: " + e.getMessage()));
         } finally {
             deleteRecursively(workDir);
         }

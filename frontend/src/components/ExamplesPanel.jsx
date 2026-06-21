@@ -2,59 +2,59 @@ import { Card, Tag, Typography, Spin, Alert } from 'antd'
 
 const { Text, Title, Paragraph } = Typography
 
-// Culoarea tag-ului de categorie (Ant Design preset colors).
+// Category tag color (Ant Design preset colors).
 const TAG_COLOR = {
-  Ordonare: 'blue',
+  Ordering: 'blue',
   Token: 'green',
   Struct: 'purple',
 }
 
-// Badge de proveniență: exemplele de demo („synthetic”) au un marcaj discret;
-// contractele reale („real”, viitor) primesc unul auriu, care iese în evidență.
+// Origin badge: demo examples ("synthetic") get a subtle marker;
+// real contracts ("real") get a gold one that stands out.
 const KIND_BADGE = {
-  synthetic: { label: 'sintetic', color: 'default' },
+  synthetic: { label: 'synthetic', color: 'default' },
   real: { label: 'real', color: 'gold' },
 }
 
-// Randează zona de preview a unui card în funcție de starea analizei live.
+// Renders the preview area of a card depending on the live analysis state.
 function Preview({ state }) {
   if (!state || state.status === 'loading') {
     return (
       <span className="preview-muted">
-        <Spin size="small" /> se calculează…
+        <Spin size="small" /> computing…
       </span>
     )
   }
   if (state.status === 'error') {
-    return <Text type="secondary" className="preview-muted">preview indisponibil</Text>
+    return <Text type="secondary" className="preview-muted">preview unavailable</Text>
   }
   if (state.slotsSaved > 0) {
     return (
       <>
-        <Tag color="success" style={{ marginInlineEnd: 0 }}>−{state.slotsSaved} sloturi</Tag>
-        <Text type="secondary">~{state.gasSaved.toLocaleString('ro-RO')} gas</Text>
+        <Tag color="success" style={{ marginInlineEnd: 0 }}>−{state.slotsSaved} slots</Tag>
+        <Text type="secondary">~{state.gasSaved.toLocaleString('en-US')} gas</Text>
       </>
     )
   }
-  return <Text type="secondary" className="preview-muted">deja optim</Text>
+  return <Text type="secondary" className="preview-muted">already optimal</Text>
 }
 
-// Panoul din stânga: listă de exemple sub formă de carduri. Click pe card =>
-// se încarcă în editor și se analizează automat (vezi App.selectExample).
+// Left panel: list of examples as cards. Clicking a card loads it into the
+// editor and analyzes it automatically (see App.selectExample).
 export default function ExamplesPanel({ samples, previews, activeId, onSelect, error }) {
   return (
     <aside className="examples-panel">
-      <Title level={4} style={{ margin: 0 }}>Exemple</Title>
+      <Title level={4} style={{ margin: 0 }}>Examples</Title>
       <Paragraph type="secondary" style={{ fontSize: 13, margin: '4px 0 12px' }}>
-        Click pe un exemplu — se încarcă și se analizează automat.
+        Click an example — it loads and is analyzed automatically.
       </Paragraph>
 
       {error && (
-        <Alert type="error" showIcon message="Nu am putut încărca exemplele" description={error} />
+        <Alert type="error" showIcon message="Could not load the examples" description={error} />
       )}
 
       {!error && samples.length === 0 && (
-        <div className="examples-loading"><Spin /> <Text type="secondary">se încarcă exemplele…</Text></div>
+        <div className="examples-loading"><Spin /> <Text type="secondary">loading examples…</Text></div>
       )}
 
       <div className="example-list">

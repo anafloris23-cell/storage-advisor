@@ -50,7 +50,7 @@ public class ExamplesController {
 
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("Nu am putut încărca exemplele: " + e.getMessage()));
+                    .body(new ErrorResponse("Could not load the examples: " + e.getMessage()));
         }
     }
 

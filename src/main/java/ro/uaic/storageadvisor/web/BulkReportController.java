@@ -58,7 +58,7 @@ public class BulkReportController {
             return ResponseEntity.ok(aggregate(lines));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("Nu am putut citi raportul: " + e.getMessage()));
+                    .body(new ErrorResponse("Could not read the report: " + e.getMessage()));
         }
     }
 
@@ -68,18 +68,18 @@ public class BulkReportController {
         Path target = base.resolve(path).normalize();
         // Protecție împotriva path traversal: ținta trebuie să rămână în interiorul dataset-ului.
         if (!target.startsWith(base)) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Cale invalidă."));
+            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid path."));
         }
         if (!Files.isRegularFile(target)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Fișier inexistent: " + path));
+                    .body(new ErrorResponse("File not found: " + path));
         }
         try {
             String source = Files.readString(target, StandardCharsets.UTF_8);
             return ResponseEntity.ok(new SourceResponse(source));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("Eroare la citirea fișierului: " + e.getMessage()));
+                    .body(new ErrorResponse("Error reading the file: " + e.getMessage()));
         }
     }
 

@@ -1,7 +1,7 @@
 // Listează problemele detectate, colorate după severitate.
 export default function IssueList({ issues }) {
   if (!issues || issues.length === 0) {
-    return <p className="empty">Nicio problemă de packing detectată.</p>
+    return <p className="empty">No packing issues detected.</p>
   }
   return (
     <ul className="issues">

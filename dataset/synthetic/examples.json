@@ -2,33 +2,33 @@
   {
     "id": "auction",
     "title": "Auction",
-    "tag": "Ordonare",
+    "tag": "Ordering",
     "kind": "synthetic",
-    "description": "Address-uri intercalate cu uint256 — reordonarea grupează câmpurile mici.",
+    "description": "Addresses interleaved with uint256 — reordering groups the small fields together.",
     "file": "01-Auction.sol"
   },
   {
     "id": "staking-pool",
     "title": "Staking Pool",
-    "tag": "Ordonare",
+    "tag": "Ordering",
     "kind": "synthetic",
-    "description": "Câmpuri de timp (uint64) împrăștiate printre uint256.",
+    "description": "Time fields (uint64) scattered among uint256 values.",
     "file": "06-StakingPool.sol"
   },
   {
     "id": "game",
     "title": "Game",
-    "tag": "Ordonare",
+    "tag": "Ordering",
     "kind": "synthetic",
-    "description": "Multe câmpuri mici (uint8) care pot intra într-un singur slot.",
+    "description": "Many small fields (uint8) that can fit into a single slot.",
     "file": "07-Game.sol"
   },
   {
     "id": "voting",
     "title": "Voting",
-    "tag": "Ordonare",
+    "tag": "Ordering",
     "kind": "synthetic",
-    "description": "Mix de bool, uint128 și address ordonat suboptim.",
+    "description": "A mix of bool, uint128 and address ordered suboptimally.",
     "file": "08-Voting.sol"
   },
   {
@@ -36,7 +36,7 @@
     "title": "Struct Loan",
     "tag": "Struct",
     "kind": "synthetic",
-    "description": "Câmpuri de struct reordonabile: 3 → 2 sloturi pe instanță.",
+    "description": "Reorderable struct fields: 3 → 2 slots per instance.",
     "file": "11-StructLoan.sol"
   },
   {
@@ -44,7 +44,7 @@
     "title": "Struct Account",
     "tag": "Struct",
     "kind": "synthetic",
-    "description": "uint64 intercalate între uint256 — caz extrem de fragmentare.",
+    "description": "uint64 interleaved between uint256 — an extreme fragmentation case.",
     "file": "12-StructAccount.sol"
   }
 ]
