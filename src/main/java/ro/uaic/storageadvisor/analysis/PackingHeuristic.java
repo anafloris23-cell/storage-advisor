@@ -28,8 +28,8 @@ public class PackingHeuristic {
     private final FirstFitBinPacker ffdPacker = new FirstFitBinPacker();
 
     public enum Strategy {
-        DP_BITMASK("DP-bitmask (optim absolut)"),
-        FIRST_FIT_DECREASING("First-Fit Decreasing (euristică, fallback pentru n > " + BitmaskBinPacker.MAX_ITEMS + ")");
+        DP_BITMASK("DP-bitmask (exact optimum)"),
+        FIRST_FIT_DECREASING("First-Fit Decreasing (heuristic, fallback for n > " + BitmaskBinPacker.MAX_ITEMS + ")");
 
         private final String label;
         Strategy(String label) { this.label = label; }

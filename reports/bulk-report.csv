@@ -1,7 +1,7 @@
 file,contract,status,error,current_slots,recommended_slots,saved_slots,current_wasted,recommended_wasted,saved_wasted,strategy,imports_removed,functions_removed,modifiers_removed,types_replaced,structs_total,structs_improved,struct_saved_slots
-01-baseline-packed.sol,,ERROR,error: ParserError: Source file requires different compiler version (current compiler is 0.8.34+commit.80d5c536.Windows.msvc) - note that nightly builds are considered to be strictly less than the released version,0,0,0,0,0,0,,0,0,0,0,0,0,0
-03-suboptimal-order.sol,MonetrixVault,OK,,66,65,1,136,104,32,DP-bitmask (optim absolut),19,45,0,4,1,0,0
 real/gmx/Order.sol,Order,OK,,0,0,0,0,0,0,DP-bitmask (optim absolut),1,41,0,0,0,0,0
+real/misc/01-baseline-packed.sol,,ERROR,error: ParserError: Source file requires different compiler version (current compiler is 0.8.34+commit.80d5c536.Windows.msvc) - note that nightly builds are considered to be strictly less than the released version,0,0,0,0,0,0,,0,0,0,0,0,0,0
+real/misc/03-suboptimal-order.sol,MonetrixVault,OK,,66,65,1,136,104,32,DP-bitmask (optim absolut),19,45,0,4,1,0,0
 real/openzeppelin/contracts/access/AccessControl.sol,AccessControl,OK,,1,1,0,0,0,0,DP-bitmask (optim absolut),3,12,0,0,1,0,0
 real/openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol,,ERROR,"error: ParserError: Expected pragma, import directive or contract/interface/library/user-defined type/constant/function/error/event definition.",0,0,0,0,0,0,,0,0,0,0,0,0,0
 real/openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol,AccessControlEnumerable,OK,,1,1,0,0,0,0,DP-bitmask (optim absolut),4,6,0,1,0,0,0
