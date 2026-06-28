@@ -23,6 +23,14 @@ function summarize(data) {
   return { slotsSaved, gasSaved: slotsSaved * GAS_PER_SLOT }
 }
 
+// Contractele reale din corpus (sanctuary) sunt salvate cu numele „<adresă>_<Nume>.sol".
+// Extrage adresa 0x… din cale, dacă există — ca să le putem aduce live de pe Etherscan
+function addressFromDatasetPath(file) {
+  const base = (file || '').replace(/\\/g, '/').split('/').pop() || ''
+  const m = base.match(/^(?:0x)?([0-9a-fA-F]{40})_/)
+  return m ? '0x' + m[1] : null
+}
+
 export default function App() {
   const [examples, setExamples] = useState([])
   const [examplesError, setExamplesError] = useState(null)
@@ -108,7 +116,9 @@ export default function App() {
     }
   }
 
-  // Click pe un rând din raport: aduce sursa contractului, comută pe Analizor și o analizează.
+  // Click pe un rând din raport: comută pe Analizor și analizează contractul.
+  // Contractele reale (sanctuary) au adresa în nume și nu sunt incluse în imaginea
+  // deployată, așa că le aducem live de pe Etherscan; sintetice se citesc de pe disc.
   async function openContract(file) {
     setView('analyzer')
     setActiveId(null)
@@ -116,10 +126,18 @@ export default function App() {
     setError(null)
     setResult(null)
     try {
-      const src = await fetchDatasetSource(file)
-      setSource(src)
-      const data = await analyzeSource(src, 'Contract.sol')
-      setResult(data)
+      const addr = addressFromDatasetPath(file)
+      if (addr) {
+        setAddress(addr)
+        const data = await analyzeAddress(addr)
+        if (data.source) setSource(data.source)
+        setResult(data)
+      } else {
+        const src = await fetchDatasetSource(file)
+        setSource(src)
+        const data = await analyzeSource(src, 'Contract.sol')
+        setResult(data)
+      }
     } catch (e) {
       setError(e.message)
     } finally {
